@@ -4,12 +4,15 @@ import { Target } from './Target';
 import { Transition, animated } from 'react-spring/renderprops';
 import { withTracker } from 'meteor/react-meteor-data';
 import { GameCollection } from '../api/game.collection';
+import { PlayerForm } from './PlayerForm';
+import { PlayerList } from './PlayerList';
 
 const AnimatedTarget = animated(Target);
 export class App extends Component {
   state = {
     x: 0,
     y: 0,
+    playerId: null,
   };
 
   componentDidMount() {
@@ -24,7 +27,8 @@ export class App extends Component {
     let isPointerLocked = false;
 
     window.addEventListener('click', () => {
-      if (!isPointerLocked) document.body.requestPointerLock();
+      if (!isPointerLocked && this.state.playerId)
+        document.body.requestPointerLock();
     });
 
     document.addEventListener('pointerlockchange', () => {
@@ -45,7 +49,8 @@ export class App extends Component {
     });
 
     const animation = () => {
-      this.setState(view);
+      if (this.state.x !== view.x || this.state.y !== view.y)
+        this.setState(view);
       window.requestAnimationFrame(animation);
     };
     window.requestAnimationFrame(animation);
@@ -55,33 +60,58 @@ export class App extends Component {
     const { x, y } = this.state;
     return (
       <>
-        <div className='crosshair' />
-        <Transition
-          native
-          items={this.props.game.targets}
-          keys={(target) => target._id}
-          from={{ scale: 0 }}
-          enter={{ scale: 1 }}
-          leave={{ scale: 0 }}
-        >
-          {(target) => {
-            return (props) => {
-              return (
-                <AnimatedTarget
-                  style={props}
-                  key={target._id}
-                  _id={target._id}
-                  onClick={(_id) =>
-                    Meteor.call('game.targetHit', this.props.game._id, _id)
-                  }
-                  x={target.x - x}
-                  y={target.y - y}
-                  size={target.size}
-                />
+        {this.state.playerId ? (
+          <>
+            <div className='center'>
+              <i className='nes-icon close is-large crosshair' />
+            </div>
+            <PlayerList players={this.props.game.players} />
+            <Transition
+              native
+              items={this.props.game.targets}
+              keys={(target) => target._id}
+              from={{ scale: 0 }}
+              enter={{ scale: 1 }}
+              leave={{ scale: 0 }}
+            >
+              {(target) => {
+                return (props) => {
+                  return (
+                    <AnimatedTarget
+                      style={{ color: target.color, ...props }}
+                      key={target._id}
+                      _id={target._id}
+                      onClick={(_id) =>
+                        Meteor.call(
+                          'game.targetHit',
+                          this.props.game._id,
+                          _id,
+                          this.state.playerId
+                        )
+                      }
+                      x={target.x - x}
+                      y={target.y - y}
+                      size={target.size}
+                    />
+                  );
+                };
+              }}
+            </Transition>
+          </>
+        ) : (
+          <PlayerForm
+            onSubmit={(name) => {
+              Meteor.call(
+                'game.addPlayer',
+                this.props.game._id,
+                name,
+                (err, playerId) => {
+                  if (!err) this.setState({ playerId });
+                }
               );
-            };
-          }}
-        </Transition>
+            }}
+          />
+        )}
       </>
     );
   }

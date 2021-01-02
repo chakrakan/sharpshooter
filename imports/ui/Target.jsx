@@ -38,6 +38,7 @@ export class Target extends Component {
       <div
         className='target'
         style={{
+          backgroundColor: this.props.style.color || 'white',
           zIndex: size,
           width: size,
           height: size,
