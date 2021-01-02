@@ -2,10 +2,17 @@ import { Meteor } from 'meteor/meteor';
 import { GameCollection } from './game.collection';
 import _ from 'lodash';
 
+if (Meteor.isServer) {
+  Meteor.setInterval(() => {
+    GameCollection.remove({ lastPing: { $lt: Date.now() - 10000 } });
+  }, 10000);
+}
+
 Meteor.methods({
   'game.create'() {
     return GameCollection.insert({
       lastTargetId: 4,
+      lastPing: Date.now(),
       targets: [
         { _id: 3, x: 300, y: 300, size: 100 },
         { _id: 2, x: 500, y: 300, size: 150 },
@@ -33,5 +40,16 @@ Meteor.methods({
     }
 
     GameCollection.update({ _id: game._id }, { $set: game });
+  },
+
+  'game.ping'(gameId) {
+    if (Meteor.isServer) {
+      GameCollection.update(
+        { _id: gameId },
+        {
+          $set: { lastPing: Date.now() },
+        }
+      );
+    }
   },
 });

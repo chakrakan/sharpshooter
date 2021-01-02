@@ -13,6 +13,14 @@ export class App extends Component {
   };
 
   componentDidMount() {
+    const self = this;
+    setInterval(function () {
+      const gameId = self.props.game._id;
+      if (gameId) {
+        Meteor.call('game.ping', gameId);
+      }
+    }, 5000);
+
     let isPointerLocked = false;
 
     window.addEventListener('click', () => {
